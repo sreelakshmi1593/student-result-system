@@ -1,6 +1,9 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from database import get_connection, calculate_grade, init_db
+from reportlab.pdfgen import canvas
+from flask import send_file
+import io
 
 app = Flask(__name__)
 CORS(app)
@@ -9,11 +12,29 @@ init_db()
 
 # ── STUDENTS ─────────────────────────────────
 
+# ADD HOME ROUTE HERE
+
+@app.route("/")
+def home():
+    return "Student Result System API is running"
+
 @app.route("/api/students", methods=["GET"])
 def get_students():
+
+    page = int(request.args.get("page", 1))
+    limit = int(request.args.get("limit", 5))
+
+    offset = (page - 1) * limit
+
     conn = get_connection()
-    students = conn.execute("SELECT * FROM students ORDER BY name").fetchall()
+
+    students = conn.execute(
+        "SELECT * FROM students ORDER BY name LIMIT ? OFFSET ?",
+        (limit, offset)
+    ).fetchall()
+
     conn.close()
+
     return jsonify([dict(s) for s in students])
 
 @app.route("/api/students/<int:id>", methods=["GET"])
@@ -163,6 +184,50 @@ def get_report(student_id):
         "overall_grade": overall_grade
     })
 
+@app.route("/api/report/roll/<roll_number>", methods=["GET"])
+def get_report_by_roll(roll_number):
+
+    conn = get_connection()
+
+    student = conn.execute(
+        "SELECT * FROM students WHERE roll_number=?",
+        (roll_number,)
+    ).fetchone()
+
+    if not student:
+        conn.close()
+        return jsonify({"error": "Student not found"}), 404
+
+    results = conn.execute("""
+        SELECT subjects.name as subject,
+               subjects.code,
+               results.marks_obtained,
+               results.grade,
+               subjects.max_marks
+        FROM results
+        JOIN subjects ON results.subject_id = subjects.id
+        WHERE results.student_id = ?
+        ORDER BY subjects.name
+    """, (student["id"],)).fetchall()
+
+    conn.close()
+
+    results_list = [dict(r) for r in results]
+
+    total = sum(r["marks_obtained"] for r in results_list)
+    max_total = sum(r["max_marks"] for r in results_list)
+
+    percentage = round((total / max_total) * 100, 2)
+
+    overall_grade = calculate_grade(percentage)
+
+    return jsonify({
+        "student": dict(student),
+        "results": results_list,
+        "percentage": percentage,
+        "overall_grade": overall_grade
+    })
+
 @app.route("/api/report/all", methods=["GET"])
 def get_all_reports():
     conn = get_connection()
@@ -200,6 +265,55 @@ def get_all_reports():
         })
 
     return jsonify(all_reports)
+
+@app.route("/api/report/pdf/<int:student_id>", methods=["GET"])
+def download_marksheet(student_id):
+
+    conn = get_connection()
+
+    student = conn.execute(
+        "SELECT * FROM students WHERE id=?",
+        (student_id,)
+    ).fetchone()
+
+    if not student:
+        conn.close()
+        return jsonify({"error": "Student not found"}), 404
+
+    results = conn.execute("""
+        SELECT subjects.name as subject,
+               results.marks_obtained,
+               results.grade
+        FROM results
+        JOIN subjects ON results.subject_id = subjects.id
+        WHERE results.student_id = ?
+    """, (student_id,)).fetchall()
+
+    conn.close()
+
+    buffer = io.BytesIO()
+
+    pdf = canvas.Canvas(buffer)
+
+    pdf.drawString(200, 800, "Student Marksheet")
+
+    pdf.drawString(100, 760, f"Name: {student['name']}")
+    pdf.drawString(100, 740, f"Roll Number: {student['roll_number']}")
+
+    pdf.drawString(100, 720, f"Department: {student['department']}")
+    pdf.drawString(100, 700, f"Year: {student['year']}")
+
+    y = 660
+
+    for r in results:
+        pdf.drawString(100, y, f"{r['subject']} - {r['marks_obtained']} ({r['grade']})")
+        y -= 20
+
+    pdf.save()
+
+    buffer.seek(0)
+
+    return send_file(buffer, as_attachment=True, download_name="marksheet.pdf", mimetype="application/pdf")
 
 # ── RUN ──────────────────────────────────────
 

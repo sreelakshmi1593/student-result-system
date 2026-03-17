@@ -42,8 +42,9 @@ def insert_sample_data():
     conn.close()
 
     
-with app.app_context():
-    insert_sample_data() 
+@app.before_request
+def load_data():
+    insert_sample_data()
    
 # ── STUDENTS ─────────────────────────────────
 

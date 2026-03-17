@@ -12,30 +12,12 @@ CORS(app)
 
 init_db()
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "students.db")
+
 def insert_sample_data():
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(BASE_DIR, "students.db")
-
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS students(
-        id TEXT PRIMARY KEY,
-        name TEXT,
-        subject1 INTEGER,
-        subject2 INTEGER,
-        subject3 INTEGER
-    )
-    """)
-
-    cursor.execute("INSERT OR IGNORE INTO students VALUES ('CS001','Rahul',85,78,90)")
-    cursor.execute("INSERT OR IGNORE INTO students VALUES ('CS002','Priya',88,92,79)")
-    cursor.execute("INSERT OR IGNORE INTO students VALUES ('CS003','Anil',70,75,80)")
-    cursor.execute("INSERT OR IGNORE INTO students VALUES ('CS004','Sneha',95,89,91)")
-
-    conn.commit()
-    conn.close()
 
 insert_sample_data()
     

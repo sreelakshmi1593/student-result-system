@@ -4,24 +4,43 @@ from database import get_connection, calculate_grade, init_db
 from reportlab.pdfgen import canvas
 from flask import send_file
 import io
-import sqlite3
-import os
+
 
 app = Flask(__name__)
 CORS(app)
 
 init_db()
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "students.db")
-
 def insert_sample_data():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cursor = conn.cursor()
 
-insert_sample_data()
-    
+    # ✅ Check if already exists
+    cursor.execute("SELECT COUNT(*) FROM students")
+    count = cursor.fetchone()[0]
 
+    if count > 0:
+        conn.close()
+        return
+
+    # ✅ Insert only once
+    cursor.execute("INSERT INTO students (id, name, roll_number, department, year) VALUES (1,'Rahul','CS001','CSE',3)")
+    cursor.execute("INSERT INTO students (id, name, roll_number, department, year) VALUES (2,'Priya','CS002','CSE',3)")
+
+    cursor.execute("INSERT OR IGNORE INTO subjects (id,name,code,max_marks) VALUES (1,'Maths','M101',100)")
+    cursor.execute("INSERT OR IGNORE INTO subjects (id,name,code,max_marks) VALUES (2,'Physics','P101',100)")
+
+    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (1,1,85,'A')")
+    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (1,2,78,'B')")
+    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (2,1,90,'A')")
+    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (2,2,88,'A')")
+
+    conn.commit()
+    conn.close()
+
+with app.app_context():
+    insert_sample_data() 
+   
 # ── STUDENTS ─────────────────────────────────
 
 # ADD HOME ROUTE HERE
@@ -77,7 +96,7 @@ def add_student():
         conn.close()
         return jsonify({"message": "Student added successfully"}), 201
     except Exception as e:
-        return jsonify({"error": "Roll number already exists"}), 400
+        return jsonify({"error": str(e)}), 400
 
 @app.route("/api/students/<int:id>", methods=["DELETE"])
 def delete_student(id):
@@ -114,8 +133,8 @@ def add_subject():
         conn.commit()
         conn.close()
         return jsonify({"message": "Subject added successfully"}), 201
-    except:
-        return jsonify({"error": "Subject code already exists"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
 # ── RESULTS ──────────────────────────────────
 

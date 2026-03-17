@@ -5,6 +5,7 @@ from reportlab.pdfgen import canvas
 from flask import send_file
 import io
 import sqlite3
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -12,7 +13,10 @@ CORS(app)
 init_db()
 
 def insert_sample_data():
-    conn = sqlite3.connect("students.db")
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(BASE_DIR, "students.db")
+
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -32,6 +36,9 @@ def insert_sample_data():
 
     conn.commit()
     conn.close()
+
+insert_sample_data()
+    
 
 # ── STUDENTS ─────────────────────────────────
 

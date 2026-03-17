@@ -31,8 +31,7 @@ def init_db():
             subject_id INTEGER NOT NULL,
             marks_obtained INTEGER NOT NULL,
             grade TEXT,
-            FOREIGN KEY (student_id) REFERENCES students(id),
-            FOREIGN KEY (subject_id) REFERENCES subjects(id)
+            UNIQUE(student_id, subject_id)
         );
     """)
 

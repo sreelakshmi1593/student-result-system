@@ -15,29 +15,35 @@ def insert_sample_data():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # ✅ Check if already exists
-    cursor.execute("SELECT COUNT(*) FROM students")
-    count = cursor.fetchone()[0]
-
-    if count > 0:
+    cursor.execute("SELECT COUNT(*) FROM results")
+    if cursor.fetchone()[0] > 0:
         conn.close()
         return
 
-    # ✅ Insert only once
-    cursor.execute("INSERT INTO students (id, name, roll_number, department, year) VALUES (1,'Rahul','CS001','CSE',3)")
-    cursor.execute("INSERT INTO students (id, name, roll_number, department, year) VALUES (2,'Priya','CS002','CSE',3)")
+    # Students
+    cursor.execute("INSERT INTO students (name, roll_number, department, year) VALUES ('Rahul','CS001','CSE',3)")
+    cursor.execute("INSERT INTO students (name, roll_number, department, year) VALUES ('Priya','CS002','CSE',3)")
 
-    cursor.execute("INSERT OR IGNORE INTO subjects (id,name,code,max_marks) VALUES (1,'Maths','M101',100)")
-    cursor.execute("INSERT OR IGNORE INTO subjects (id,name,code,max_marks) VALUES (2,'Physics','P101',100)")
+    # Subjects
+    cursor.execute("INSERT OR IGNORE INTO subjects (name, code, max_marks) VALUES ('Maths','M101',100)")
+    cursor.execute("INSERT OR IGNORE INTO subjects (name, code, max_marks) VALUES ('Physics','P101',100)")
 
-    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (1,1,85,'A')")
-    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (1,2,78,'B')")
-    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (2,1,90,'A')")
-    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (2,2,88,'A')")
+    # Get student IDs
+    cursor.execute("SELECT id FROM students WHERE roll_number='CS001'")
+    s1 = cursor.fetchone()[0]
+
+    cursor.execute("SELECT id FROM students WHERE roll_number='CS002'")
+    s2 = cursor.fetchone()[0]
+
+    # Results
+    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (?,1,85,'A')", (s1,))
+    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (?,2,78,'B')", (s1,))
+    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (?,1,90,'A')", (s2,))
+    cursor.execute("INSERT INTO results (student_id, subject_id, marks_obtained, grade) VALUES (?,2,88,'A')", (s2,))
 
     conn.commit()
     conn.close()
-
+    
 with app.app_context():
     insert_sample_data() 
    

@@ -4,11 +4,34 @@ from database import get_connection, calculate_grade, init_db
 from reportlab.pdfgen import canvas
 from flask import send_file
 import io
+import sqlite3
 
 app = Flask(__name__)
 CORS(app)
 
 init_db()
+
+def insert_sample_data():
+    conn = sqlite3.connect("students.db")
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS students(
+        id TEXT PRIMARY KEY,
+        name TEXT,
+        subject1 INTEGER,
+        subject2 INTEGER,
+        subject3 INTEGER
+    )
+    """)
+
+    cursor.execute("INSERT OR IGNORE INTO students VALUES ('CS001','Rahul',85,78,90)")
+    cursor.execute("INSERT OR IGNORE INTO students VALUES ('CS002','Priya',88,92,79)")
+    cursor.execute("INSERT OR IGNORE INTO students VALUES ('CS003','Anil',70,75,80)")
+    cursor.execute("INSERT OR IGNORE INTO students VALUES ('CS004','Sneha',95,89,91)")
+
+    conn.commit()
+    conn.close()
 
 # ── STUDENTS ─────────────────────────────────
 
